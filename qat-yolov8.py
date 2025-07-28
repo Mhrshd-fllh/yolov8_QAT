@@ -7,6 +7,8 @@ import tqdm, json
 from typing import Callable
 from copy import deepcopy
 from ultralytics.utils.torch_utils import init_seeds
+import numpy as np
+import time
 
 # from ultralytics.utils import DEFAULT_CFG as cfg
 # DEFAULT_CFG -> 默认的配置文件路径: /home/anaconda3/envs/quant/lib/python3.8/site-packages/ultralytics/cfg/default.yaml
@@ -286,11 +288,38 @@ def run_sensitive_analysis(weight, device, cocodir, summary_save):
 
 from ultralytics.models import yolo
 def run_test(weight, device, cocodir):
-
     device  = torch.device(device)
     model   = load_yolov8_model(weight, device)
-    val_dataloader = get_dataloader(cfg, cocodir + "images/val2017", batch_size=cfg.batch, mode='val')
-    evaluate_coco(model, val_dataloader)
+    val_dataloader = get_dataloader(cfg, cocodir + "images/val2017", batch_size=1, mode='val')
+
+    model.eval()
+    latencies = []
+
+    with torch.no_grad():
+        for i, batch in enumerate(val_dataloader):
+            imgs = batch['img'].to(device).float() / 255.0
+
+            torch.cuda.synchronize()
+            start = time.perf_counter()
+            _ = model(imgs)
+            torch.cuda.synchronize()
+            end = time.perf_counter()
+
+            latencies.append(end - start)
+
+            # Optional: فقط روی 100 تصویر
+            # if i >= 99:
+            #     break
+
+    latencies = np.array(latencies)
+    avg_latency = latencies.mean()
+    fps = 1.0 / avg_latency if avg_latency > 0 else float("inf")
+
+    print(f"\n🕒 Average Latency per Image: {avg_latency:.6f} seconds")
+    print(f"🎯 FPS: {fps:.2f} frames/sec\n")
+
+    mAP = evaluate_coco(model, val_dataloader)
+    print(f"📊 mAP50-95(B): {mAP:.4f}")
 
 
 
@@ -300,7 +329,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument('--weight', type=str, default='yolov8n.pt', help='initial weight patsh')
-    parser.add_argument('--cocodir', type=str,  default="../Datasets/COCO/", help="coco directory")
+    parser.add_argument('--cocodir', type=str,  default="../Dataset/COCO/", help="coco directory")
     parser.add_argument("--device", type=str, default="cuda:0", help="device")
 
     parser.add_argument('--save', type=str,  required=False, help="coco directory")
@@ -323,12 +352,13 @@ if __name__ == "__main__":
     parser.add_argument("--nmsthres", type=float, default=0.65, help="nms threshold")
 
     parser.add_argument('--export', type=bool, default=False, help='Do Export weight to onnx file ...')
-    parser.add_argument('--finetune', type=bool, default=True, help='Do PTQ/QAT finetune ...')
+    parser.add_argument('--finetune', type=bool, default=False, help='Do PTQ/QAT finetune ...')
     parser.add_argument('--sensitive', type=bool, default=False, help='Do Sensitive layer analysis ...')
     parser.add_argument('--test', type=bool, default=False, help='Do evaluate ...')
 
 
     args = parser.parse_args()
+    # print(args.weight)
     init_seeds(2023)
 
     if args.export:
