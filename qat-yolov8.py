@@ -36,7 +36,7 @@ from ultralytics.utils import yaml_load, IterableSimpleNamespace
 # from ultralytics.engine.model import Model
 def load_yolov8_model(weight, device) -> DetectionModel:
     attempt_download(weight)
-    model = torch.load(weight, map_location=device)["model"]
+    model = torch.load(weight, map_location=device, weights_only = False)["model"]
     for m in model.modules():
         if type(m) is nn.Upsample:
             m.recompute_scale_factor = None  # torch 1.11.0 compatibility
