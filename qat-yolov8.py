@@ -57,7 +57,7 @@ from ultralytics.data import build_dataloader, build_yolo_dataset
 from ultralytics.utils import clean_url, emojis
 def build_dataset(cfg, img_path, mode='train', batch=None, gs=32):
     """Build YOLO Dataset."""
-    cfg.data = "ultralytics/ultralytics/cfg/datasets/coco128.yaml"
+    cfg.data = "ultralytics/ultralytics/cfg/datasets/coco2017.yaml"
     try:
         if cfg.task == 'classify':
             data = check_cls_dataset(cfg.data)
@@ -97,7 +97,7 @@ def run_qat(weight, cocodir, device, ignore_policy, save_ptq, save_qat, supervis
     model   = load_yolov8_model(weight, device)
     print("Load dataset ....")
     train_dataloader = get_dataloader(cfg, cocodir + "images/train2017", batch_size=cfg.batch, mode='train')
-    val_dataloader   = get_dataloader(cfg, cocodir + "images/train2017", batch_size=cfg.batch, mode='val')
+    val_dataloader   = get_dataloader(cfg, cocodir + "images/val2017", batch_size=cfg.batch, mode='val')
     print("Insert QDQ ....")
     quantize.replace_bottleneck_forward(model)
     quantize.replace_to_quantization_module(model, ignore_policy=ignore_policy)
@@ -257,7 +257,7 @@ def run_sensitive_analysis(weight, device, cocodir, summary_save):
     device  = torch.device(device)
     model   = load_yolov8_model(weight, device)
     train_dataloader = get_dataloader(cfg, cocodir + "images/train2017", batch_size=cfg.batch, mode='train')
-    val_dataloader   = get_dataloader(cfg, cocodir + "images/train2017", batch_size=cfg.batch, mode='val')
+    val_dataloader   = get_dataloader(cfg, cocodir + "images/val2017", batch_size=cfg.batch, mode='val')
     quantize.replace_to_quantization_module(model)
     quantize.calibrate_model(model, train_dataloader, device)
 
@@ -289,7 +289,7 @@ def run_test(weight, device, cocodir):
 
     device  = torch.device(device)
     model   = load_yolov8_model(weight, device)
-    val_dataloader = get_dataloader(cfg, cocodir + "images/train2017", batch_size=cfg.batch, mode='val')
+    val_dataloader = get_dataloader(cfg, cocodir + "images/val2017", batch_size=cfg.batch, mode='val')
     evaluate_coco(model, val_dataloader)
 
 
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument('--weight', type=str, default='yolov8n.pt', help='initial weight patsh')
-    parser.add_argument('--cocodir', type=str,  default="datasets/coco128/", help="coco directory")
+    parser.add_argument('--cocodir', type=str,  default="../Datasets/COCO/", help="coco directory")
     parser.add_argument("--device", type=str, default="cuda:0", help="device")
 
     parser.add_argument('--save', type=str,  required=False, help="coco directory")
