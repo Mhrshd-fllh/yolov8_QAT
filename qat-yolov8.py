@@ -329,7 +329,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument('--weight', type=str, default='yolov8n.pt', help='initial weight patsh')
-    parser.add_argument('--cocodir', type=str,  default="../Dataset/COCO/", help="coco directory")
+    parser.add_argument('--cocodir', type=str,  default="../datasets/coco/", help="coco directory")
     parser.add_argument("--device", type=str, default="cuda:0", help="device")
 
     parser.add_argument('--save', type=str,  required=False, help="coco directory")
